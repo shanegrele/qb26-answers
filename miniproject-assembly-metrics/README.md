@@ -1,6 +1,7 @@
 # Mini Project: Assembly Metrics
+this compares different metrics for 4 different caenorhabditis remanei genome assemblies, all of which are fasta files from https://parasite.wormbase.org/species.html
 
-## Compare C. remanei assemblies
+## compare C. remanei assemblies
 
 https://ftp.ebi.ac.uk/pub/databases/wormbase/parasite/releases/WBPS19/species/caenorhabditis_remanei/PRJNA248909/caenorhabditis_remanei.PRJNA248909.WBPS19.genomic.fa.gz
 
