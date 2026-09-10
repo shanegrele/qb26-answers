@@ -1,4 +1,4 @@
-# Mini Project Assembly Metrics
+# Mini Project: Assembly Metrics
 
 ## Compare C. remanei assemblies
 
@@ -21,7 +21,7 @@ https://ftp.ebi.ac.uk/pub/databases/wormbase/parasite/releases/WBPS19/species/ca
 127M  caenorhabditis_remanei.PRJNA577507.WBPS19.genomic.fa
 
 
-## python script for contig#, contig length, avg# of contigs
+## python script for contig #, contig length, avg # of contigs
 added the python script for this to my github with git add, git commit
 
 to run the script, go to the command line, make sure you're in the correct directory, and type ./assembly-metrics.py followed by the file name
