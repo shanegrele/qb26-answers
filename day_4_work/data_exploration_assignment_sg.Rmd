@@ -1,0 +1,405 @@
+---
+title: "Data exploration assignment"
+author: "Shane Grele"
+date: "`r Sys.Date(2026-09-11)`"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = TRUE)
+```
+
+In this exercise, you will practice basic `dplyr` (the relevant package
+within `tidyverse`) operations on a dataset of gene expression levels
+across human tissues (from the GTEx Project). The dataset (`dt`) has one
+row per gene, with columns:
+
+- `Name`: the Ensembl gene ID
+- `Description`: the gene symbol
+- One column per tissue containing the median expression levels (in TPM
+  units)
+
+**Using HopGPT.** You are welcome to use HopGPT on this assignment. If
+you do, add a couple of comment lines in that same code block noting
+what you asked it and how you checked the answer. Remember that a
+chatbot will happily give you code that runs perfectly and answers a
+slightly different question than the one you asked.
+
+For example:
+
+```{r ai-comment-example, eval=FALSE}
+# Asked HopGPT how to sort a tibble by a column with a space in its name.
+# Checked: printed the first and last rows to confirm it sorted descending.
+```
+
+------------------------------------------------------------------------
+
+### Start by loading the data into R:
+
+Note the arguments, which specify that the first two lines of the file
+will be skipped, that the file contains a header line that should be
+used to form column names, and that the columns are tab (`\t`)
+separated.
+
+```{r load-data}
+library(tidyverse)
+dt <- read_delim("~/Data/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz",
+                 skip = 2, col_names = TRUE, delim = "\t")
+```
+
+### Q1. How many genes are in the dataset, and how many tissues are represented?
+
+Note that not every column is a tissue.
+
+```{r q1}
+# code and answer here
+dt #shows a tibble of 56,200 x 56
+nrow(dt) #there are 56,200 rows, all of which are genes
+ncol(dt)-2 #shows 54 tissue types, excluding the first two columns which are the gene name and description
+```
+
+------------------------------------------------------------------------
+
+### Q2. How many genes are expressed above a given threshold in each tissue?
+
+A common threshold is 1 TPM to define whether a gene is "expressed."\
+Compute, for each of the three tissues, `Liver`, `Testis`, and
+`Whole Blood`, how many genes are expressed above this threshold.\
+Then identify which tissue has the **most** and which has the **fewest**
+expressed genes. See this paper for one possible explanation: Xia et al.
+2021: [PMC7891839](https://pmc.ncbi.nlm.nih.gov/articles/PMC7891839/).
+
+Do the results change if you set the threshold higher, say at 10 TPM?
+
+*Hint:* the column name `Whole Blood` contains a space, so it needs
+backticks: `` dt$`Whole Blood` ``.
+
+```{r q2}
+# Code here
+
+nrow(dt %>% filter(Liver>1)) #there are 13,499 genes with Liver expression above 1TPM
+
+nrow(dt %>% filter(Testis>1)) #there are 25,064 genes with Testis expression above 1TPM
+
+nrow(dt %>% filter(dt$'Whole Blood'>1)) #there are 11,616 genes with Whole Blood expression above 1TPM
+
+nrow(dt %>% filter(Liver>10)) #there are 5,132 genes with Liver expression above 10TPM
+
+nrow(dt %>% filter(Testis>10)) #there are 11,471 genes with Testis expression above 10TPM
+
+nrow(dt %>% filter(dt$'Whole Blood'>10)) #there are 4,482 genes with Whole Blood expression above 10TPM
+
+# Interpretation here as a comment:
+
+#The Testis has the most genes expressed, and the Whole Blood the fewest, at both TPM thresholds.
+
+
+```
+
+------------------------------------------------------------------------
+
+### Q2b. Write a function
+
+If you answered Q2 by copying the same line of code and editing the
+tissue name, and then copying those lines again and editing the
+threshold, you did six near-identical things by hand. Each time you
+copied code represents a chance to introduce a mistake, and if you
+wanted to change something, you would have to implement the change
+multiple times.
+
+Write a function `count_expressed()` that takes a vector of expression
+values and a threshold, and **returns** the number of genes above that
+threshold. Give the threshold a default value of 1.
+
+Test it on a small vector where you already know the answer, such as
+`c(0, 0.5, 1, 5, 100)`. Then use it to redo Q2 (all three tissues, both
+thresholds) instead of writing out the counting code separately six
+times.
+
+```{r q2b}
+  
+# test on an input with a known answer
+# use it to answer Q2 again
+
+# your function here
+count_expressed <- function(df, tissue_name) {
+  threshold_1_TPM <- df %>% filter({{tissue_name}} >1)
+  return(nrow(threshold_1_TPM))
+}
+
+# test on an input with a known answer
+count_expressed(dt, Liver)
+
+# use it to answer Q2 again
+
+count_expressed <- function(df, tissue_name) {
+  threshold_1_TPM <- df %>% filter({{tissue_name}} >1)
+  return(nrow(threshold_1_TPM))
+}
+
+count_expressed(dt, Liver)
+count_expressed(dt, Testis)
+count_expressed(dt, dt$'Whole Blood')
+
+count_expressed_10 <- function(df, tissue_name) {
+  threshold_10_TPM <- df %>% filter({{tissue_name}} >10)
+  return(nrow(threshold_10_TPM))
+}
+
+count_expressed_10(dt, Liver)
+count_expressed_10(dt, Testis)
+count_expressed_10(dt, dt$'Whole Blood')
+```
+
+------------------------------------------------------------------------
+
+### Q3. What are the 20 most highly expressed genes in the liver?
+
+What do you notice about many of the genes in this list? Can you propose
+a hypothesis to explain your observation?
+
+```{r q3}
+
+# Code here
+dt_arranged_liver <- dt %>%
+  arrange(-Liver) #arranges the dt rows by Liver value in descending order
+
+head(dt_arranged_liver, 20) #prints the first 20 rows/genes of the rearranged dt
+
+# Interpretation here as a comment
+#many of the highly expressed genes are mitochondrially-encoded, probably because the liver requires a lot of energy to perform its metabolic functions
+```
+
+------------------------------------------------------------------------
+
+### Q4. Compare the mean expression levels of mitochondrial versus nuclear-encoded genes in the Liver.
+
+Genes encoded by the mitochondrial genome have the gene symbol prefix
+`MT-`. The function `str_starts()` from the `stringr` package in
+`tidyverse` tests whether a string (or a vector of strings) starts with
+a given pattern, returning TRUE/FALSE (or a boolean vector) as output.
+
+Use `str_starts()` to identify which genes are mitochondrially encoded
+and store this information in a new Boolean column named
+`is_mitochondrial`. Next, compute the mean and median expression of
+mitochondrial genes in the liver, as well as the mean and median
+expression of nuclear-encoded genes in the liver and compare them. Do
+mitochondrial genes exhibit higher or lower mean and median expression
+than nuclear genes? What does the difference between the mean and median
+tell you about the distribution of gene expression?
+
+**Check your pattern before you trust the result.** There is an easy
+version of this that is wrong: matching `"MT"` instead of `"MT-"`. Count
+how many genes each of the two patterns matches, and look at a few of
+the genes that `"MT"` picks up but `"MT-"` does not. How much does the
+mistake change your answer?
+
+```{r q4}
+# Code here
+
+#I asked HOPGPT how to use str_starts() to mutate columns based on what a preexisting column starts with. It gave me this: filter(str_starts(name, "A")), but I changed it to mutate() instead of filter(), because I didn't want to get rid of non-mitochondrial genes.
+
+#create a new Boolean column is_mitochondrial for both the correct and wrong prefixes (column 57!)
+dt_mito_correct <- dt %>% mutate(is_mitochondrial=str_starts(Description, "MT-"))
+dt_mito_wrong <- dt %>% mutate(is_mitochondrial=str_starts(Description, "MT"))
+
+# check that there are 37 'correct' mitochondrial genes
+dt_mito_correct <- dt_mito_correct %>%
+  arrange(-is_mitochondrial) 
+head(dt_mito_correct)
+
+dt_mito_wrong <- dt_mito_wrong %>% 
+  arrange(-is_mitochondrial)
+head(dt_mito_wrong)
+
+#mean and median expression of nuclear vs. mitochondrial genes in the liver
+dt_mito_correct %>%
+  group_by(is_mitochondrial) %>%
+  summarize(mean(Liver))
+
+dt_mito_correct %>%
+  group_by(is_mitochondrial) %>%
+  summarize(median(Liver))
+
+# how many genes match "MT-" vs "MT"? which genes differ?
+nrow(dt_mito_correct %>% filter(is_mitochondrial==TRUE))
+nrow(dt_mito_wrong %>% filter(is_mitochondrial==TRUE))
+
+# Interpretation here as a comment
+
+#Liver statistics: 
+#mean mitochondrial=11592.716143
+#mean nuclear=8.373839
+#median mitochondrial=3.40258
+#median nuclear=0.00000
+#the mitochondrial genes exhibit higher mean and median expression in the liver. The median expression values are lower than the mean, indicating that just a few genes, many mitochondrial, have a much greater expression in the liver than other genes
+
+#when you use the wrong str_starts() prefix, more genes are 'mitochondrial' than actually are! (37 as opposed to 549), because dt_mito_wrong has all genes that start with "MT" marked as mitochondrial.
+```
+
+------------------------------------------------------------------------
+
+### Q5. Which tissue is this?
+
+So far we have told you which tissue to look at. Now you will find a
+tissue based on the genes it expresses.
+
+A gene is *tissue-specific* if it is expressed much more in one tissue
+than it is on average across the body. To measure that, you first need
+each gene's average expression across all tissues.
+
+```{r mean-across-tissues}
+#I made a new data table for this, so is_mitochondrial doesn't exist in my original dt
+dt <- dt %>% mutate(is_mitochondrial=str_starts(Description, "MT-"))
+# remove the columns that are not tissue expression
+tissue_only <- dt %>%
+  select(-Name, -Description, -is_mitochondrial)
+
+# store the mean back in the original tibble
+dt <- dt %>%
+  mutate(mean_all_tissues = rowMeans(tissue_only))
+```
+
+**(a)** Pick any tissue in the dataset and compute a specificity score
+for every gene:
+
+$$\text{specificity} = \log_2 \left( \frac{\text{my tissue} + 1}{\text{mean across all tissues} + 1} \right)$$
+Keep only genes expressed above 10 TPM in your tissue, sort by
+specificity, and print the top 20 gene symbols.
+
+```{r specificity-score}
+
+#threshold the tissue of interest to greater than 10TPM
+Testis_threshold_10_TPM <- dt %>% filter(Testis>10)
+
+#add specificity
+Testis_threshold_10_TPM <- Testis_threshold_10_TPM %>% mutate(testis_specificity = log2((Testis + 1)/(mean_all_tissues + 1)))
+
+#print the top 20 genes
+sorted_Testis_threshold_10_TPM <- Testis_threshold_10_TPM %>%
+  arrange(-testis_specificity)
+
+head(sorted_Testis_threshold_10_TPM, 20)
+
+#I asked HOPGPT how I could use head() to only print specific columns for the top 20 rows!
+head(sorted_Testis_threshold_10_TPM[c("Name", "Description", "Testis", "testis_specificity")], 20)
+
+```
+
+**(b)** Give a classmate *only that list of 20 gene symbols* — not the
+tissue name — and see whether they can identify the tissue. Do the same
+for theirs. If the list doesn't give it away, explain why it
+challenging.
+
+```{r other-tissues-challenge}
+
+#make a table with the top 20:
+mystery_tissue <- head(sorted_Testis_threshold_10_TPM[c("Name", "Description", "Testis", "testis_specificity")], 20)
+
+#give to a classmate (get rid of the third and fourth columns):
+write.table(mystery_tissue[1:2], file= "/Users/cmdb/Desktop/day_4_work/mystery_tissue.tsv", sep = "\t", row.names=FALSE)
+
+#my classmate's list:
+tissue_classmate <- read_delim("/Users/cmdb/Desktop/day_4_work/table.tsv",
+                 skip = 2, col_names = TRUE, delim = "\t")
+head(tissue_classmate)
+
+#look up the genes from within the original data table
+dt %>%
+  filter(Description %in% c("PLGLA", "FGF21", "RP11-372E1.4", "F13B", "UGT1A4", "	LINC01595")) %>% View() 
+#you can see by filtering based different genes in the Description column that all of these genes are highly expressed in the Liver. My classmate likely gave me the top scoring genes for Liver specificity.
+
+```
+
+**(c)** Why is the `> 10 TPM` filter in part (a)? Take it out and look
+at what rises to the top. What kind of genes are the most \`\`specific"
+when you do not require them to be meaningfully expressed?
+
+```{r TPM-threshold}
+
+#Add specificity directly to the unfiltered list (see '5a' for filtered)
+Testis_threshold_unfiltered <- dt %>% mutate(testis_specificity = log2((Testis + 1)/(mean_all_tissues + 1)))
+
+#print the relevant columns:
+sorted_Testis_unfiltered <- Testis_threshold_unfiltered %>%
+  arrange(-testis_specificity)
+
+testis_TPM_10 <- sorted_Testis_threshold_10_TPM[c("Name", "Description", "Testis", "testis_specificity")]
+head(testis_TPM_10, 20)
+testis_TPM_unfiltered <-sorted_Testis_unfiltered[c("Name", "Description", "Testis", "testis_specificity")]
+head(testis_TPM_unfiltered, 20)
+#With some tissues, there could be genes that are 'specific' but have a really low expression across all tissue types. For my particular tissue(Testis), this did not turn out to be true, so removing the threshold did not have an impact on the data. The specificity is relative to all other genes, and does not report the expression levels. Genes with very low expression but high 'specificity' might not be biologically relevant in that tissue.
+```
+
+**(d)** Housekeeping genes, which are highly expressed in every tissue,
+should score near 0 on this specificity metric. Find a few genes with
+specificity closest to 0 and high expression. Do they look like what you
+would expect?
+
+```{r housekeeping-genes}
+
+testis_TPM_unfiltered %>% filter(Testis>10) %>% arrange(abs(testis_specificity))
+  
+  #testis_specificity < 0, Testis>500)
+
+#these genes do look like what I would expect. I see housekeeping genes such as actins. Originally, I searched for the lowest specificities, which would show genes that are expressed at a lower level in the Testis, NOT tissues that are the most ubiquitously expressed. Further along the list, I see some mitochondrial genes, which are also to be expected, as they're essential for energy production.
+
+```
+
+------------------------------------------------------------------------
+
+### Q6. Comparing gene expression between tissues
+
+Another way to compare tissues is to ask how similar are their
+expression patterns overall, across all genes?
+
+R has a built-in function called `cor.test()` that measures the
+correlation between two vectors of numbers. Remember that you can
+extract the contents of a given column of a tibble as a vector using the
+syntax `tibble_name$column_name`. If a column name contains spaces,
+enclose the column name in backticks such as
+`` tibble_name$`column name` ``.
+
+Use `cor.test()` with the argument `method = "spearman"` to compute:
+
+- the Spearman correlation between `Liver` and `Heart - Left Ventricle`
+- the Spearman correlation between `Liver` and `Brain - Cortex`
+
+Which pair of tissues is more strongly correlated? Does this result make
+sense biologically?
+
+You will see a warning about not being able to compute an exact p-value
+because of ties. You can ignore it, as it does not affect the
+qualitative results in this case. It is worth understanding where it
+comes from, though: what is it about these data that creates so many
+tied values?
+
+```{r q6}
+#I asked HOPGPT how to format the arguments in cor.test() for a spearman's correlation
+# Liver vs Heart answer
+cor.test(dt$Liver, dt$'Heart - Left Ventricle', method = "spearman")
+
+# Liver vs Brain answer
+cor.test(dt$Liver, dt$'Brain - Cortex', method = "spearman")
+
+# interpretation:
+#Liver and heart-left ventricle are strongly correlated at 0.8973187
+#Liver and brain-cortex are slightly less correlated at 0.8503967 
+
+#while the many '0' scores might cause tied values, the brain's expression profile might be different than the others, because, while all these tissues have high energy demands, the brain also has functions specialized for its role in the central nervous system
+```
+
+------------------------------------------------------------------------
+
+### Optional: further exploration
+
+What other patterns are present in the data? Use tidyverse functions to
+explore and summarize the data in different ways and see what you can
+learn.
+
+```{r optional}
+# answer here
+```
