@@ -1,0 +1,203 @@
+---
+title: "Data visualization assignment"
+author: "Shane Grele"
+date: "`r Sys.Date(2026-09-11)`"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = TRUE, fig.width = 6, fig.height = 4)
+```
+
+In this exercise, you will practice basic plotting with **`ggplot2`** on
+a dataset of median gene expression levels across samples from various
+human tissues from the GTEx Project. The dataset (`dt`) has one row per
+gene, with columns:
+
+- `Name`: the Ensembl gene ID
+- `Description`: the gene symbol
+- One column per tissue containing the median expression levels (in TPM
+  units)
+
+Insert your code into the empty code blocks. Insert answers to any
+comprehension questions as comments within the code blocks. You do not
+need to submit the figures themselves, only the code used to produce
+them. Remember to label your axes!
+
+**Using HopGPT.** As in the last assignment: you are welcome to use it,
+and wherever you do, add a couple of comment lines in that same code
+block noting what you asked it and how you checked the answer.
+
+------------------------------------------------------------------------
+
+### Load data
+
+Start by loading the data into R, as before.
+
+```{r load-data}
+library(tidyverse)
+
+dt <- read_delim("~/Data/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz",
+                 skip = 2, col_names = TRUE, delim = "\t")
+```
+
+Recreate the `is_mitochondrial` column from the last assignment; you
+will need it in Q4 and Q5.
+
+```{r add-mito}
+dt <- dt %>%
+  mutate(is_mitochondrial = str_starts(Description, "MT-"))
+
+dt %>% count(is_mitochondrial)
+```
+
+------------------------------------------------------------------------
+
+### Q1. Histogram
+
+Make a histogram of gene expression in the liver. Use the argument
+`breaks = seq(0, 100, 2)` to bin in units of 2 TPM, ranging from 0 to
+100. Note that this cuts off the data at 100, which might be misleading
+depending on what we are trying to depict! How many genes are you
+leaving out?
+
+What do you notice about the shape of the distribution? What does it
+tell you about the relative expression of genes in the liver
+transcriptome? Do you think this is specific to the liver? Check another
+tissue, as well.
+
+```{r q1}
+
+#plot:
+p1_Liver<- dt %>% ggplot(aes(x=Liver)) + geom_histogram(breaks=seq(0,100,2))
+p1_Liver
+
+#genes left out: 
+nrow(dt %>% filter(Liver>100)) # 594 genes have a TPM greater than 100 and are left out
+
+#shape: skews to the right, with a much lower median than mean. 
+#relative expression of liver genes: mostly low, with some very high outliers
+
+#compare to other tissues:
+p1_Testis<- dt %>% ggplot(aes(x=Testis)) + geom_histogram(breaks=seq(0,100,2))
+p1_Testis
+
+p1_Bladder<- dt %>% ggplot(aes(x=Bladder)) + geom_histogram(breaks=seq(0,100,2))
+p1_Bladder
+
+p1_Bladder<- dt %>% ggplot(aes(x=Bladder)) + geom_histogram(breaks=seq(0,100,2))
+p1_Bladder
+
+#many other tissue types also have many genes with a very low expression score and some very highly expressed outliers, but some (such as Testis) have a less skewed distribution than the Liver
+
+```
+
+------------------------------------------------------------------------
+
+### Q2. Density plot
+
+Going back to the liver, now represent the same data with a density plot
+rather than a histogram. Do not restrict the X axis. Within the same
+code block, create a second plot where you remove the custom bin breaks,
+but transform the expression values using `log10()`. First add a
+pseudo-count of 1 to the expression values, as the log of 0 is negative
+infinity.
+
+What does the log-transformed version show you that the first plot does
+not? And where on the log-transformed plot do the genes with 0 TPM end
+up?
+
+```{r q2}
+
+# answer here
+```
+
+------------------------------------------------------------------------
+
+### Q3. Scatter plot
+
+Make a scatter plot comparing the expression of genes in the `Liver` to
+the same genes in the `Heart - Left Ventricle`. Add a pseudocount to
+each and log10 transform them. Adjust the point size to 1 and the alpha
+(opacity) to 0.2. Add a dashed red line along the diagonal (y = x).
+
+What does a point far above the diagonal mean, biologically?
+
+```{r q3}
+
+# answer here
+```
+
+------------------------------------------------------------------------
+
+### Q4. Colored points on scatter plot
+
+Color the previous scatter plot points based on whether the genes are
+mitochondrial vs. nuclear encoded, using the `is_mitochondrial` column
+you made above.
+
+There are only a few dozen mitochondrial genes among tens of thousands
+of nuclear ones, so the colored points end up buried. Try plotting them
+as a second `geom_point()` layer on top of the others, using the `data`
+argument to give that layer just the mitochondrial genes:
+`geom_point(data = filter(dt, is_mitochondrial), ...)`.
+
+Where do the mitochondrial genes sit relative to the diagonal, and does
+that fit what you found in the last assignment?
+
+```{r q4}
+
+# answer here
+```
+
+------------------------------------------------------------------------
+
+### Q5. Facets
+
+Repeat question 1 (histogram), but faceting such that you create
+separate panels (arranged horizontally) for several tissues of interest:
+
+```{r focal-tissues}
+focal_tissues <- c("Liver", "Testis", "Whole Blood", "Heart - Left Ventricle", "Brain - Cortex")
+```
+
+This requires first converting the data into "long" format with
+`pivot_longer()`:
+
+```{r pivot-long}
+dt_long <- dt %>%
+  select("Description", "is_mitochondrial", all_of(focal_tissues)) %>%
+  pivot_longer(cols = all_of(focal_tissues), names_to = "Tissue", values_to = "TPM")
+```
+
+After creating the 5-panel plot, also split into two rows that separate
+genes that are versus are not encoded by the mitochondrial genome (10
+panels). Use the argument `scales = "free_y"` to deal with the fact that
+there are far fewer mitochondrial-encoded than nuclear-encoded genes.
+
+`scales = "free_y"` means the panels can no longer be compared by eye.
+Write the one-sentence note you would put in a figure caption to keep a
+reader from being misled.
+
+```{r q5}
+
+# your code for 5-panel plot
+
+# your code for 10-panel plot
+
+# caption note
+
+```
+
+------------------------------------------------------------------------
+
+Optional: Have fun and explore these data! Create your own plots and
+interpret them.
+
+```{r optional}
+
+# answer here
+```
