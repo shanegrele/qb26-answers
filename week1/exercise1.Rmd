@@ -1,0 +1,40 @@
+---
+title: "exercise1.Rmd"
+author: "Shane Grele"
+date: "2026-09-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load in data}
+library(tidyverse)
+  header <- c( "chr", "start", "end", "count" )
+  df_kc <- read_tsv("~/qb26-answers/week1/hg19-kc-count.bed", col_names=header )
+```
+Plot using ggplot(), geom_line(), and facet_wrap(), using the scales argument to let the x- and y-axes adjust for each chromosome
+If you need a place to start, plot just chr1 by first subsetting using filter( chr == "chr1" ) so that you don’t have to use facet_wrap(), then proceed to plotting all the chromosomes
+Save your plot using ggsave( "exercise1.png" )
+
+```{r plot}
+library(ggplot2)
+exercise1_chr1 <- df_kc %>% filter(chr=="chr1") %>% 
+  ggplot(aes(x=start,  y=count)) + geom_line()
+exercise1_chr1
+
+exercise_1_all <- df_kc %>% ggplot(aes(x=start, y=count)) + geom_line() + 
+  facet_wrap (~chr, scales= "free")
+exercise_1_all
+
+ggsave("exercise1.png", width=15, height=10)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
