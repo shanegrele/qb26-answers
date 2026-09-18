@@ -33,7 +33,6 @@ exercise1_chr1
 exercise_1_all <- df_kc %>% ggplot(aes(x=start, y=count)) + geom_line() + 
   facet_wrap (~chr, scales= "free")
 exercise_1_all
-
 ggsave("exercise1.png", width=15, height=10)
 ```
 
