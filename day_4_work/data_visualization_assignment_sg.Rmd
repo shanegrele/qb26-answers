@@ -70,9 +70,12 @@ transcriptome? Do you think this is specific to the liver? Check another
 tissue, as well.
 
 ```{r q1}
+#load ggplot2: 
 
+library(ggplot2)
+library(dplyr)
 #plot:
-p1_Liver<- dt %>% ggplot(aes(x=Liver)) + geom_histogram(breaks=seq(0,100,2))
+p1_Liver<- dt %>% ggplot(aes(x=Liver)) + geom_histogram(breaks=seq(0, 100, 2)) + labs(x = "Liver Expression (TPM)")
 p1_Liver
 
 #genes left out: 
@@ -82,16 +85,13 @@ nrow(dt %>% filter(Liver>100)) # 594 genes have a TPM greater than 100 and are l
 #relative expression of liver genes: mostly low, with some very high outliers
 
 #compare to other tissues:
-p1_Testis<- dt %>% ggplot(aes(x=Testis)) + geom_histogram(breaks=seq(0,100,2))
+p1_Testis<- dt %>% ggplot(aes(x=Testis)) + geom_histogram(breaks=seq(0,100,2)) + labs(x = "Testis Expression (TPM)")
 p1_Testis
 
-p1_Bladder<- dt %>% ggplot(aes(x=Bladder)) + geom_histogram(breaks=seq(0,100,2))
+p1_Bladder<- dt %>% ggplot(aes(x=Bladder)) + geom_histogram(breaks=seq(0,100,2)) + labs(x = "Bladder Expression (TPM)")
 p1_Bladder
 
-p1_Bladder<- dt %>% ggplot(aes(x=Bladder)) + geom_histogram(breaks=seq(0,100,2))
-p1_Bladder
-
-#many other tissue types also have many genes with a very low expression score and some very highly expressed outliers, but some (such as Testis) have a less skewed distribution than the Liver
+#many other tissue types also have many genes with a very low expression score and some very highly expressed outliers, but some (such as Testis) may appear to be slightly less right-skewed
 
 ```
 
@@ -113,6 +113,15 @@ up?
 ```{r q2}
 
 # answer here
+
+p2_Liver<- dt %>% ggplot(aes(x=Liver)) + geom_density(breaks=seq(0,100,2)) + labs(x = "Liver Expression (TPM)")
+p2_Liver
+
+
+p2b_Liver<- dt %>% ggplot(aes(x = log10(Liver + 1))) + geom_density() + labs(x = "Liver Expression (log(TPM))")
+p2b_Liver
+
+#The log transformed version shows the counts better, because most of the counts are close to zero. When transformed, log(0+1) is 0, so most of the zeroes show up as 0. Plotting the log10 shows that the data is right skewed, with some significantly high outliers.
 ```
 
 ------------------------------------------------------------------------
@@ -128,7 +137,14 @@ What does a point far above the diagonal mean, biologically?
 
 ```{r q3}
 
-# answer here
+#I asked HOPGPT how to set the y-axis since it has spaces in the name. The answer it gave was back-ticks around the column name (``).
+p3_Liver_vs_Left_Ventricle <- dt %>% ggplot(aes(x=log10(Liver+1), y=log10(`Heart - Left Ventricle`+1))) +
+  geom_point(alpha=0.2, size=1) + 
+  geom_abline(slope=1, intercept=0, linetype= 'dashed', color="red") +
+  labs(x = "Liver Expression (log(TPM))", y="Heart - Left Ventricle Expression (log(TPM))")
+p3_Liver_vs_Left_Ventricle
+
+#Biologically, any points far above the diagonal represent genes which have much greater tissue-specific expression in the Left Ventricle than in the Liver.
 ```
 
 ------------------------------------------------------------------------
@@ -151,6 +167,14 @@ that fit what you found in the last assignment?
 ```{r q4}
 
 # answer here
+
+p4_compare_mitochondrial <- dt %>% ggplot(aes(x=log10(Liver+1), y=log10(`Heart - Left Ventricle`+1))) +
+  geom_point(color= "grey", alpha=0.2, size=1) + 
+  geom_point(data = filter(dt, is_mitochondrial), color= "blue", alpha=0.2, size=1) +
+  geom_abline(slope=1, intercept=0, linetype= 'dashed', color="red") + labs(x = "Liver Expression (log(TPM))", y="Heart - Left Ventricle Expression (log(TPM))")
+p4_compare_mitochondrial
+
+#Many of the mitochondrial genes have a greater expression in the Left Ventricle than in the Liver, but most sit close to the dotted line, and many are highly expressed in both tissues. This concords with the results of the last assignment, which showed that both tissue types have many upregulated mitochondrial genes, as both have high energy and/or metabolic demands.
 ```
 
 ------------------------------------------------------------------------
@@ -161,7 +185,9 @@ Repeat question 1 (histogram), but faceting such that you create
 separate panels (arranged horizontally) for several tissues of interest:
 
 ```{r focal-tissues}
+#making a new vector with focal tissues
 focal_tissues <- c("Liver", "Testis", "Whole Blood", "Heart - Left Ventricle", "Brain - Cortex")
+
 ```
 
 This requires first converting the data into "long" format with
@@ -186,10 +212,23 @@ reader from being misled.
 
 # your code for 5-panel plot
 
+dt_long %>% filter(Tissue %in% focal_tissues) %>%
+ggplot(aes(x=TPM)) + geom_histogram(breaks=seq(0,100,2)) + facet_wrap(~ Tissue) + 
+  labs(x="Expression(TPM)", y= "counts")
+
 # your code for 10-panel plot
+dt_long %>% filter(Tissue %in% focal_tissues) %>%
+  ggplot(aes(x=TPM)) + geom_histogram(breaks=seq(0,100,2)) + 
+  facet_grid(is_mitochondrial~Tissue, scales='free_y', 
+             labeller = labeller(is_mitochondrial = c(`TRUE` = "Mitochondrial", `FALSE` = "Nuclear"))) + 
+               labs(x="Expression(TPM)", y= "counts")
+#I asked HOPGPT how to re-label the facets in facet_grid(), given that TRUE vs. FALSE doesn't clearly indicate which genes are mitochondrial vs. nuclear
+
+
+dt %>% count(is_mitochondrial) #There are 37 mitochondrially-encoded genes and 56,163 nuclear-encoded genes
 
 # caption note
-
+#Histograms showing the distribution of expression levels (TPM) for each gene in the GTEx dataset by tissue type for both nuclear(n=56,163), and mitochondrial(n=37) genes.
 ```
 
 ------------------------------------------------------------------------
