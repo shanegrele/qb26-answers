@@ -1,0 +1,5 @@
+*.fa.gz
+*.sam
+*.bam
+*.bam.bai
+
