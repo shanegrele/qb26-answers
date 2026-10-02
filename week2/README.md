@@ -26,7 +26,7 @@ the original fq.gz file for A01_09 is 42.7MB, I checked the file size in Data/BY
 166M A01_09.sam
 
 The .sam file is larger than the .fq.gz file because it is uncompressed. The .sam file also has things like name, quality score, etc.
-The .bam file is smaller than the .sam file beacuse it is a compressed binary version of the .sam file.
+The .bam file is smaller than the .sam file because it is a compressed binary version of the .sam file.
 
 ## Question 1.2: how the for loop would run for A01_23 (the 3rd item)
 bwa mem -t 4 -R @RG\tID:A01_23\tSM:A01_23 ../genomes/sacCer3.fa /Users/cmdb/Data/BYxRM/fastq/A01_23.fq.gz
@@ -137,7 +137,9 @@ If it were diploid, or "-p 2", then the resultant genotypes could be heterozygou
 ## Commands
 
 **see ex4.py**
+
 **I used chmod +x ./ex4.py, followed by python3 ex4.py to run the command and create the files for my R script**
+
 **see also: ex4.R**
 
 ## Question 4.1
