@@ -1,4 +1,4 @@
-#This will be the README for my week2 answers.
+# This will be the README for my week2 answers.
 
 # Preparation
 ## Confirm that the dataset is already on the computer 
@@ -13,6 +13,10 @@ cd BYxRM
 less BYxRM_GenoData.txt 
 
 # Exercise 1
+## Commands 
+
+**see map_reads.sh**
+
 ## Question 1.1
 
 the original fq.gz file for A01_09 is 42.7MB, I checked the file size in Data/BYxRM/fastq/A01_09.fq.gz.
@@ -23,7 +27,7 @@ the original fq.gz file for A01_09 is 42.7MB, I checked the file size in Data/BY
 
 166M A01_09.sam
 
-The .sam file is larger than the fq.gz file because it is uncompressed. The .sam file also has things like name, quality score, etc.
+The .sam file is larger than the .fq.gz file because it is uncompressed. The .sam file also has things like name, quality score, etc.
 The .bam file is smaller than the .sam file beacuse it is a compressed binary version of the .sam file.
 
 ## Question 1.2: how the for loop would run for A01_23 (the 3rd item)
@@ -111,6 +115,27 @@ B
 B
 
 I found that all but A01_39 agree with my visual call.
+
+# Exercise 3
+
+## Commands 
+
+**see call_variants.sh**
+
+## Question 3.1
+
+**ran less -S biallelic.vcf**
+
+The last 10 columns in the #CHROM line come from the sample names, which are from the name of the .bam files.
+
+
+## Question 3.2
+
+With the command that was run to get the vcf file originally with freebayes, the "-p 1" is 1-ploid, or haploid.
+If it were diploid, or "-p 2", then the resultant genotypes could be heterozygous, and freebayes would have to call whether the sample matches the REF or the ALT as 0/0, 0/1, or 1/1, instead of the haploid 0 or 1.
+
+
+
 
 
 
