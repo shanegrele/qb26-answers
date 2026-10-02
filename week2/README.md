@@ -55,14 +55,23 @@ cat A01_09.flagstat
 **step 2.3**
 
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 10
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 12
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 24
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 25
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 28
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 32
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 36
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 40
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 63
+
 grep -F -e 'chr01_27915' -e 'chr01_28323' -e 'chr01_28652' -e 'chr01_29667' ~/Data/BYxRM/BYxRM_GenoData.txt | cut -f 64
 
 
