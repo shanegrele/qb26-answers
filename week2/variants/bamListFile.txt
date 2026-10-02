@@ -1,0 +1,10 @@
+A01_09.bam
+A01_11.bam
+A01_23.bam
+A01_24.bam
+A01_27.bam
+A01_31.bam
+A01_35.bam
+A01_39.bam
+A01_62.bam
+A01_63.bam
