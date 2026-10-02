@@ -1,5 +1,3 @@
-# This will be the README for my week2 answers.
-
 # Preparation
 ## Confirm that the dataset is already on the computer 
 ls -l BYxRm
@@ -134,7 +132,25 @@ The last 10 columns in the #CHROM line come from the sample names, which are fro
 With the command that was run to get the vcf file originally with freebayes, the "-p 1" is 1-ploid, or haploid.
 If it were diploid, or "-p 2", then the resultant genotypes could be heterozygous, and freebayes would have to call whether the sample matches the REF or the ALT as 0/0, 0/1, or 1/1, instead of the haploid 0 or 1.
 
+# Exercise 4
 
+## Commands
+
+**see ex4.py**
+**I used chmod +x ./ex4.py, followed by python3 ex4.py to run the command and create the files for my R script**
+**see also: ex4.R**
+
+## Question 4.1
+
+The allele frequencies cluster around 0.5, which makes sense if these are segregants of yeast strains created by crossing Wt(B) and mutant(R) strains. This is a Normal distribution.
+
+## Question 4.2
+
+As you go along the chromosome, you can see a few points where the mutant (not the Wt(B) genotype) is present. While there are a few position 'points' that are mutant, most of the mutant DNA from this yeast sample A01_62 is at the ends of the chromosome. This would make sense given that genes close to one another on the chromosome are more likely to segregate together (not experience recombination events).
+
+## Question 4.3 
+
+I think it does concord with the IGV snapshot of Chr1, the ones that appeared mutant in ex2 have more '1''s on the ggplot for Chr1 and the ones that appeared Wt have more '0's' on the ggplot.
 
 
 
