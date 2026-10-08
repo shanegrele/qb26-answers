@@ -148,7 +148,7 @@ The allele frequencies cluster around 0.5, which makes sense if these are segreg
 
 ## Question 4.2
 
-As you go along the chromosome, you can see a few points where the mutant (not the Wt(B) genotype) is present. While there are a few position 'points' that are mutant, most of the mutant DNA from this yeast sample A01_62 is at the ends of the chromosome. This would make sense given that genes close to one another on the chromosome are more likely to segregate together (not experience recombination events).
+As you go along the chromosome, you can see that the mutant DNA from this yeast sample (A01_62) is mostly chunked together. This would make sense given that genes close to one another on the chromosome are more likely to segregate together (not experience recombination events).
 
 ## Question 4.3 
 
