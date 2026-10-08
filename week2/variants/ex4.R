@@ -22,7 +22,7 @@ colnames(gt_long) <- c("chromosome", "position", "sample", "genotype")
 
 #ChrII of sample A01_62, 
 A01_62_ChrII <- gt_long %>% filter(chromosome == "chrII", sample == "A01_62")
-ggplot(A01_62_ChrII, aes(x = position, y = genotype, color = genotype)) +
+ggplot(A01_62_ChrII, aes(x = position, y = sample, color = genotype)) +
   geom_point() +
   xlab("Position") +
   ylab("Genotype")
@@ -30,7 +30,7 @@ ggplot(A01_62_ChrII, aes(x = position, y = genotype, color = genotype)) +
 #All chromosomes on A01_62
 A01_62_all <- gt_long %>%
   filter(sample == "A01_62")
-ggplot(A01_62_all, aes(x = position, y = genotype, color = genotype)) +
+ggplot(A01_62_all, aes(x = position, y = sample, color = genotype)) +
   geom_point() +
   facet_grid("chromosome")
 xlab("Position") +
@@ -38,10 +38,10 @@ xlab("Position") +
   
   
 #All chromosomes on all samples
-ggplot(gt_long, aes(x = position, y = genotype, color = genotype)) +
+ggplot(gt_long, aes(x = position, y = sample, color = genotype)) +
   geom_point() +
-  facet_grid(chromosome ~ sample) +
+  facet_grid(.~chromosome) +
   xlab("Position") +
   ylab("Genotype")
 
-ggsave("ancestry.png", width=30, height=15 )
+ggsave("ancestry.png", width=45, height=15 )
