@@ -76,6 +76,7 @@ Load `aau1043_parental_age.csv`.
 ```{r}
 #Ages of the parents of each proband:
 parental_ages <- read_csv("~/qb26-answers/week3/aau1043_parental_age.csv")
+parental_ages
 ```
 
 #### **Step 1.4 — Merge counts with ages**
