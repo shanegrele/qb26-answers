@@ -224,7 +224,7 @@ anova(ex2_5_2, ex2_2_maternal)
 Plot both distributions on the **same axes** as semi-transparent histograms; save as `ex2_d.png`.
 
 ```{r}
-
+#put two histograms on the same ggplot, use scale_fill_manual() to create custom color fills 
 ex_2_d <- ggplot() +
   geom_histogram(data = merged, aes(x = maternal_dnm, fill = "Maternal"), 
                  bins = 20, alpha = 0.5, color="grey") +
@@ -253,7 +253,7 @@ ex_2_7_1
 
 2.  Is the relationship significant? How do you know? Explain the p-value in plain but precise language.
 
-    *Your answer: The relationship is significant. The p-value of 2.2E-16 indicates that the probablility of seeing this much of a difference (or greater) due to chance alone, assuming the true difference between maternal DNMs and paternal DNMs is 0, is less than 2.2E-16*
+    *Your answer: The relationship is significant. The p-value of 2.2E-16 indicates that the probablility of seeing this much of a difference (or greater) due to chance alone, assuming the true difference between maternal DNMs and paternal DNMs is 0, is less than 2.2E-16.*
 
 **2.7.2** The paired t-test is equivalent to using the difference between the maternal and paternal DNM counts per proband as the response variable and fitting a model with only an intercept term (indicated with `1` on the right side of the model formula). Fit this model using `lm()`.
 
@@ -264,7 +264,7 @@ summary(ex_2_7_2)
 
 3.  How do the results compare to the paired t-test? How would you interpret the coefficient estimate for the intercept term?
 
-    *Your answer: The intercept, or average difference, is the same (also -39.2348, p\<2E-16), meaning that this model predict that for a paternal DNM value of 0, the maternal DNM value is predicted to be -39.2348; in other words, the average proband is predicted to have \~39.25 fewer de-novo mutations from the maternal germline than they do DNMs from the paternal germline. The paired t-test and this linear regression model in Step 2.7.1 convey that same information.*
+    *Your answer: The intercept, or average difference, is the same (also -39.2348, p\<2E-16), meaning that this model predicts that for a paternal DNM value of 0, the maternal DNM value is predicted to be -39.2348; in other words, the average proband is predicted to have \~39.25 fewer de-novo mutations from the maternal germline than they do DNMs from the paternal germline. The paired t-test Step 2.7.1 conveys that same information.*
 
 ------------------------------------------------------------------------
 
@@ -275,41 +275,93 @@ summary(ex_2_7_2)
 Choose a dataset from the bottom of the [TidyTuesday README](https://github.com/rfordatascience/tidytuesday) and load it.
 
 ```{r}
+df_ex_3 <- read_csv("~/qb26-answers/week3/cafe.csv")
+df_ex_3
 ```
 
 1.  Which dataset did you choose?
 
-    *Your answer:*
+    *Your answer: I chose a dataset that compared the price of a small cappuccino to the hourly wages at numerous cafes in urban, suburban, and rural environments throughout the world.*
 
 #### **Step 3.2 — Explore and visualize**
 
 Generate figures; save them as `ex3_<something>.png`.
 
-```{r}
+```{r, fig.width=15, fig.height=8}
+
+#wages vs. cappuccino prices colored by country
+ex3_country_color<- ggplot(data=df_ex_3, aes(x = hourly_wage_gbp, y = price_gbp, color=country)) +
+  geom_point() +
+  labs(x = "Hourly Wage (GBP)", y = "Cappuccino Price (GBP)")
+ex3_country_color
+ggsave("ex3_country_color.png", width=15, height=8)
+
+#wages vs. cappuccino prices faceted by country
+ex3_country_faceted <- ggplot(df_ex_3, aes(x = hourly_wage_gbp, y = price_gbp)) +
+  geom_point() +
+  facet_wrap(~ country) +
+  labs(x="Hourly Wage (GBP)", y="Cappuccino Price (GBP)")
+ex3_country_faceted
+ggsave("ex3_country_faceted.png", width=15, height=8)
+
+#mutate the dataframe to easily look at differences between urban, suburban, and rural areas
+df_ex_3_long <- df_ex_3 %>%
+  pivot_longer(
+    cols = c(urban, suburban, rural),
+    names_to = "area",
+    values_to = "present"
+  ) %>%
+  filter(present == TRUE)
+
+#wages vs. cappuccino prices colored by urban vs. suburban vs. rural
+ex3_area_color <- ggplot(df_ex_3_long, aes(x = hourly_wage_gbp, y = price_gbp, color=area)) +
+  geom_point() + labs(x="Hourly Wage (GBP)", y="Cappuccino Price (GBP)")
+ex3_area_color
+ggsave("ex3_area_color.png", width=10, height=6)
+
+#wages vs. cappuccino prices faceted by urban vs. suburban vs. rural
+ex3_area_faceted <- ggplot(df_ex_3_long, aes(x = hourly_wage_gbp, y = price_gbp)) +
+  geom_point() +
+  facet_wrap(~ area) +
+  labs(x="Hourly Wage (GBP)", y="Cappuccino Price (GBP)")
+ex3_area_faceted
+ggsave("ex3_area_faceted.png", width=10, height=6)
+
 ```
 
 1.  What interesting patterns do you notice?
 
-    *Your answer:*
+    *Your answer: I notice that there appears to be a correlation between wages and cappuccino prices (all reported in British Pounds), but upon first glance, there isn't any separation or clustering within country nor area type (rural vs. suburban vs. urban).*
 
 #### **Step 3.3 — Pose and test a linear-model hypothesis**
 
 1.  State a hypothesis that you can test with a linear model.
 
-    *Your answer:*
+    *Your answer: There is a linear relationship between hourly wages and cappuccino prices, but accounting for country and area of the individual cafes will not improve the predictive power of this linear relationship.*
 
 Fit a linear model with at least two predictors to test your hypothesis, and evaluate its fit.
 
 ```{r}
+#run the linear regressin model on just one relationship, wages vs. price, to see effect of wages on price
+ex_3_3_1 <- lm (data=df_ex_3_long, price_gbp ~ hourly_wage_gbp)
+summary(ex_3_3_1)
+
+#run the multiple-lm model, adding predictors, to see the effect of th
+ex_3_3_2 <- lm(data = df_ex_3_long, price_gbp ~ hourly_wage_gbp + country + area)
+summary(ex_3_3_2)
+
+#run an ANOVA between the two to compare
+anova(ex_3_3_1, ex_3_3_2)
+
 ```
 
 2.  Why did you include each predictor?
 
-    *Your answer:*
+    *Your answer: I included these predictors because I wanted to see the effect of both country and area on the linear model predicting the relationship between hourly wages and cappuccino prices.*
 
 3.  Report and interpret your results. How well does the model fit?
 
-    *Your answer:*
+    *Your answer: While the overall model has a lower R-squared, the p-value is very high, meaning the relationship betwen wages and prices is highly significant. Holding country and area constant improves R-squared, and still results in a low p-value for most countries and most area types, meaning that both these predictors still result in an accurate, statistically significant model The ANOVA has a very low p-value as well, meaning the predictors were shown to improve the model. However, given that there are many coefficients introduced with 'country' and three introduced with 'area', meaning that there is a risk of 'overfitting' with the coefficients when the data is clustered into this many categorical variables (countries and area types).*
 
 ------------------------------------------------------------------------
 
