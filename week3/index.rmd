@@ -99,16 +99,28 @@ Use your merged data frame for the following. All plots should be clearly labele
 **2.1.1** Create a scatter plot of the count of maternal DNMs vs. maternal age → save as `ex2_a.png`
 
 ```{r}
+
+ex2_a <- merged %>% ggplot(aes(x=Mother_age, y=maternal_dnm)) + geom_point() + labs(x="Maternal Age", y= "# of Maternal De-Novo Mutations in Proband") 
+ex2_a
+ggsave("ex2_a.png")
 ```
 
 **2.1.2** Create a scatter plot of the count of paternal DNMs vs. paternal age → save as `ex2_b.png`
 
 ```{r}
+
+ex2_b <- merged %>% ggplot(aes(x=Father_age, y=paternal_dnm)) + geom_point() + labs(x="Paternal Age", y= "# of Paternal De-Novo Mutations in Proband")
+ex2_b
+ggsave("ex2_b.png")
 ```
 
 **2.1.3** Create a scatter plot of paternal age vs. maternal age → save as `ex2_c.png`
 
 ```{r}
+
+ex2_c <- merged %>% ggplot(aes(x=Mother_age, y=Father_age)) + geom_point() + labs(x="Maternal Age", y="Paternal Age")
+ex2_c
+ggsave("ex2_c.png")
 ```
 
 #### **Step 2.2 — OLS: maternal age vs. maternal DNMs**
@@ -116,43 +128,51 @@ Use your merged data frame for the following. All plots should be clearly labele
 Fit a simple linear regression model relating maternal age to the number of maternal de novo mutations.
 
 ```{r}
+
+ex2_2_maternal <- lm(data=merged, maternal_dnm ~ Mother_age)
+summary(ex2_2_maternal)
 ```
 
 Answer the following questions:
 
 1.  What is the "size" (i.e., slope) of this relationship? Interpret the slope in plain language. Does it match your plot?
 
-    *Your answer:*
+    *Your answer: The slope is 0.3376, meaning that for every year older the mother is, the model predicts that the proband(offspring) will inherit 0.3776 additional de-novo mutations from the maternal germline.*
 
 2.  Is the relationship significant? How do you know? Explain the p-value in plain but precise language.
 
-    *Your answer:*
+    *Your answer: The relationship is significant. While the R-squared value is only \~0.23, meaning that only \~23% of the variation here is explained by the linear regression/line of best fit; the p-value is quite low, meaning that the liklihood of observing a slope this extreme or more extreme, assuming the true slope is 0, is less than 2.2E-16.*
 
 #### **Step 2.3 — OLS: paternal age vs. paternal DNMs**
 
 Repeat the step above but for paternal age vs. paternal DNMs.
 
 ```{r}
+ex2_3_paternal <- lm(data=merged, paternal_dnm ~ Father_age)
+summary(ex2_3_paternal)
 ```
 
 Answer the following questions:
 
 1.  What is the "size" (i.e., slope) of this relationship? Interpret the slope in plain language. Does it match your plot?
 
-    *Your answer:*
+    *Your answer: The slope is 1.354, meaning that for every year older the father is, the model predicts that the proband(offspring) will inherit 1.354 additional de-novo mutations from the paternal germline.*
 
 2.  Is the relationship significant? How do you know? Explain the p-value in plain but precise language.
 
-    *Your answer:*
+    *Your answer: The relationship is significant. While the R-squared value is only \~0.62, meaning that only \~62% of the variation here is explained by the linear regression/line of best fit; the p-value is quite low, meaning that the liklihood of observing a slope this extreme or more extreme, assuming the true slope is 0, is less than 2.2E-16.*
 
 #### **Step 2.4 — Predict for a 50.5-year-old father**
 
 Use the paternal regression model to predict the expected number of paternal DNMs for a father of age 50.5. You are welcome to do this manually or using a built-in function, but show your work in the code chunk.
 
 ```{r}
+ex2_4_prediction <- predict(ex2_3_paternal, newdata = data.frame(Father_age = 50.5))
+ex2_4_prediction
+
 ```
 
-*Your answer:*
+*Your answer: 78.69546 de-novo paternal mutations are predicted for the proband(offspring) of a father who is 50.5 years old.*
 
 #### **Step 2.5 — Multiple regression: correlated predictors**
 
@@ -161,41 +181,59 @@ Maternal DNMs arose in the mother's germline, so there is no obvious reason that
 **2.5.1** Fit a simple linear regression model relating **paternal** age to the number of **maternal** DNMs.
 
 ```{r}
+
+ex2_5_1 <- lm(data=merged, maternal_dnm ~ Father_age)
+summary(ex2_5_1)
 ```
 
 1.  Is paternal age a significant predictor of maternal DNMs on its own? Using your plot from 2.1.3, explain why this might happen.
 
-    *Your answer:*
+    *Your answer: While there is a 'relationship' between the two (as evidenced by the low p-value stating that the liklihood of there being a slope this extreme (0.23) or more extreme due to chance alone, assuming the true slope is 0, is very low, at 1.367E-13), this is probably because paternal age is correlated with maternal age. Maternal age is biologically relevant here, and predictive for the amount of maternal de-novo mutations.*
 
 **2.5.2** Fit a multiple linear regression model with both maternal age and paternal age as predictors of maternal DNMs, just as we added year as a covariate in the penguin example.
 
 ```{r}
+
+ex2_5_2 <- lm(data=merged, maternal_dnm ~ Mother_age + Father_age)
+summary(ex2_5_2)
 ```
 
 2.  What happened to the paternal age coefficient and its p-value?
 
-    *Your answer:*
+    *Your answer: Once the mother's age is accounted for, the age of the father doesn't have a significant relationship to the amount of maternal de-novo mutations in the proband(offspring), in fact, for every year the father's age increases, the amount of maternal DNM's decreases by 0.06. However, the p-value associated with this is much higher, at 0.18.*
 
 3.  Interpret the maternal age coefficient in plain language. How does its meaning differ from the slope you estimated in Step 2.2? (Hint: what is being held constant?)
 
-    *Your answer:*
+    *Your answer: Here, paternal age is held constant for the maternal age coefficient, meaning that when paternal age is accounted for, each year the mother's age increases raises the predicted amount of de-novo maternal mutations inherited by her offspring by \~0.45, a slightly higher slope than was found in step 2.2, with a similarly low p-value of 3.41E-12.*
 
 **2.5.3** Use `anova()` to compare your two-predictor model from 2.5.2 to your model from Step 2.2 (maternal age only).
 
 > **Hint:** In the live coding, we used `anova()` to test whether island improved a model that already contained sex and year. The same approach works for any pair of models where the smaller model is the larger model with some terms removed (these are called "nested" models). Here, the smaller model is the one that leaves out paternal age.
 
 ```{r}
+
+anova(ex2_5_2, ex2_2_maternal)
 ```
 
 4.  Does adding paternal age improve the model? Compare the p-value from `anova()` to the p-value for paternal age in the `summary()` of the two-predictor model. Why are they the same here, when for island we needed `anova()` to get a single answer? (Hint: how many coefficients did island add to the model, and how many does paternal age add?)
 
-    *Your answer:*
+    *Your answer: Adding paternal age changes the slope but does not improve the model, with a high, non-significant p-value of 0.187. The ANOVA p-value is the same (also 0.187) as the p-value for the paternal age coefficient in 2.5.2(the linear regression model with the Father_age variable added). The ANOVA is 'nested', and compares the same thing as the model in 2.5.2-- the only coefficient added is paternal age, so it asks whether paternal age improves the model. In the livecoding example with the penguins dataset, adding the 'island' variable to the linear regression model added multiple coefficients, because there were multiple islands, so making a new model accounting for 'island' made the p-value different than the ANOVA p-value, which asked whether adding 'island' improved the model.*
 
 #### **Step 2.6 — Compare distributions of maternal vs. paternal DNMs**
 
 Plot both distributions on the **same axes** as semi-transparent histograms; save as `ex2_d.png`.
 
 ```{r}
+
+ex_2_d <- ggplot() +
+  geom_histogram(data = merged, aes(x = maternal_dnm, fill = "Maternal"), 
+                 bins = 20, alpha = 0.5, color="grey") +
+  geom_histogram(data = merged, aes(x = paternal_dnm, fill = "Paternal"), 
+                 bins = 20, alpha = 0.5, color="grey") +
+  scale_fill_manual(values = c("Maternal" = "pink", "Paternal" = "lightblue")) +
+  labs(x = "Number of De-Novo Mutations in Proband", y = "count", fill = "Parent") 
+ex_2_d
+ggsave("ex2_d.png")
 ```
 
 #### **Step 2.7 — Statistical test: maternal vs. paternal DNMs per proband**
@@ -205,24 +243,28 @@ We have **paired** observations per proband (maternal vs. paternal). The paired 
 **2.7.1** Apply a paired t-test in R using `t.test(merged$maternal_dnm, merged$paternal_dnm, paired = TRUE)`.
 
 ```{r}
+ex_2_7_1 <- t.test(merged$maternal_dnm, merged$paternal_dnm, paired = TRUE)
+ex_2_7_1
 ```
 
 1.  What is the "size" of this relationship (i.e., the average difference in counts of maternal and paternal DNMs)? Interpret the difference in plain language. Does it match your plot?
 
-    *Your answer:*
+    *Your answer: The mean difference is highly negative, meaning that per-proband(offspring), there are significantly fewer (\~39.23, p\<2.2E-16) maternal de-novo mutations on average than there are paternal de-novo mutations. It matches the histogram in step 2.6, which shows that the distribution of paternal DNMs is shifted to the right of the distribution of maternal DNMs.*
 
 2.  Is the relationship significant? How do you know? Explain the p-value in plain but precise language.
 
-    *Your answer:*
+    *Your answer: The relationship is significant. The p-value of 2.2E-16 indicates that the probablility of seeing this much of a difference (or greater) due to chance alone, assuming the true difference between maternal DNMs and paternal DNMs is 0, is less than 2.2E-16*
 
 **2.7.2** The paired t-test is equivalent to using the difference between the maternal and paternal DNM counts per proband as the response variable and fitting a model with only an intercept term (indicated with `1` on the right side of the model formula). Fit this model using `lm()`.
 
 ```{r}
+ex_2_7_2 <- lm(data = merged, maternal_dnm-paternal_dnm ~ 1)
+summary(ex_2_7_2)
 ```
 
 3.  How do the results compare to the paired t-test? How would you interpret the coefficient estimate for the intercept term?
 
-    *Your answer:*
+    *Your answer: The intercept, or average difference, is the same (also -39.2348, p\<2E-16), meaning that this model predict that for a paternal DNM value of 0, the maternal DNM value is predicted to be -39.2348; in other words, the average proband is predicted to have \~39.25 fewer de-novo mutations from the maternal germline than they do DNMs from the paternal germline. The paired t-test and this linear regression model in Step 2.7.1 convey that same information.*
 
 ------------------------------------------------------------------------
 
