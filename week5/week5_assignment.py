@@ -30,13 +30,14 @@ def main(): #from the framework
     plot_reps_pca(nf_rep_data, rep_times, reps, title="Replicate PCA Plot from Step 1.3", fname="step_1.3.png")
     #mTOR is a nutrient-sensing kinase that responds to feeding-based oscillations of gene expression, and mice were fed on a restricted schedule, so it makes sense that replicates from the same timepoint would be similar. This is what is shown when all gene expression from the replicates are collapsed into two components, that the colors generally are in similar positions on the plot, and are clustered together.
 
-def plot_reps_pca(data, times, reps, title, fname): #step 1.2: the PCA analysis, (I asked HOPGPT first how to plot data and save those plots in python, then for help making this a function that can be called within main() when the entire script is run by typing python week5_assignment.py at the command line.)
+def plot_reps_pca(data, times, reps, title, fname): 
+#step 1.2: the PCA analysis, (I asked HOPGPT first how to plot data and save those plots in python, then for help making this a function that can be called within main() when the entire script is run by typing python week5_assignment.py at the command line.)
     #create a PCA, data will be nf_rep_data when called
     #keep the first 2 components, include random_state=42
     pca = PCA(n_components=2, random_state=42)
     #transposes the matrix, flipping the axes
     pcs = pca.fit_transform(data.T)
-    #create the scatterplot of PC1 and PC2, color by sampling time and size by # replicates
+    #create the scatterplot of PC1 and PC2, color by sampling time and size by replicate #
     fig, ax = plt.subplots()
     ax.scatter(pcs[:, 0], pcs[:, 1], c=times, cmap='Set1', s=reps * 15)
     ax.set_xlabel('PC1')
