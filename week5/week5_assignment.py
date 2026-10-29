@@ -11,7 +11,6 @@ from sklearn.cluster import KMeans
 #- wget https://github.com/bxlab/cmdb-quantbio/raw/refs/heads/main/assignments/lab/unsupervised_learning/extra_data/unsupervised_learning_data.tgz 
 #- tar xzf unsupervised_learning_data.tgz 
 
-
 def main(): #from the framework
     rapa_data = numpy.loadtxt('WT_NF_Rapa_counts.tsv')
     nf_data = numpy.loadtxt('WT_NF_Ctrl_counts.tsv')
@@ -48,8 +47,30 @@ def main(): #from the framework
     norm_nf_data=normalize_data(nf_data_filtered)
     norm_rapa_data = normalize_data(rapa_data_filtered)
     peak = numpy.argmax(norm_nf_data, axis=1)
-    plot_gene_pca(norm_nf_data, peak, title="Gene PCA Plot from Step 2.3", fname="step_2.3.png")
-    
+    x_coords, y_coords = plot_gene_pca(norm_nf_data, peak, title="Gene PCA Plot from Step 2.3", fname="step_2.3.png")
+
+    #step 3.1: order expression times by 'angle' and plot data
+    # angle from the first two PC coordinates
+    # I edited 2.3 to define y_coords, and x_coords as the PCA's from 2.3, so that calling 'angle' uses those values to calculate the angle. Otherwise, you get a nameerror.
+    angle = numpy.arctan2(y_coords, x_coords)
+    plot_hm(norm_nf_data, orderby=angle, title="Ordered Gene Expression Heatmap from Step 3.1", fname="step_3.1.png")
+
+    #step 3.2: align genes by 'angle'(expression time) and plot data again
+    # alignments with the align_times() function 
+    # I had an issue with align_times() from the framework, where the alignments wouldn't run because numpy.roll()'s shift argument only accepts integers, not floats, so I had to use int(numpy.floor()), and int(numpy.ceil())-- I got this fix from HOPGPT, and from classmates as well.
+    aligned_nf_data=align_times(norm_nf_data, angle)
+    aligned_rapa_data=align_times(norm_rapa_data, angle)
+    #plot phased gene expression for WT_NF_Ctrl
+    plot_hm(aligned_nf_data, orderby=angle, title="Phased Gene Expression Heatmap from Step 3.2", fname="step_3.2.png")
+
+    #step 3.3: cluster the aligned data
+    data_clustered=numpy.concatenate((aligned_nf_data, aligned_rapa_data), axis=1)
+    groups=KMeans(n_clusters=6, random_state=42).fit_predict(data_clustered)
+
+    #step 3.4: plot clustered data
+    plot_hm(aligned_nf_data,aligned_rapa_data, orderby=groups, showgroups=True, title="Clustered Gene Expression Heatmap from Step 3.4", fname="step_3.4.png")
+
+
 
 def plot_reps_pca(data, times, reps, title, fname): #step 1.2: PCA analysis by replicate
 #(I asked HOPGPT first how to plot data and save those plots in python, then for help making this a function that can be called within main() when the entire script is run by typing python week5_assignment.py at the command line.)
@@ -68,7 +89,8 @@ def plot_reps_pca(data, times, reps, title, fname): #step 1.2: PCA analysis by r
     plt.savefig(fname, dpi=300, bbox_inches='tight')
     plt.close()
 
-def plot_gene_pca(data, color, title, fname): #step 2.2: performing PCA analysis by gene
+
+def plot_gene_pca(data, color, title, fname): #step 2.2: PCA analysis by gene
     pca = PCA(n_components=2, random_state=42)
     pcs = pca.fit_transform(data)
     fig, ax = plt.subplots()
@@ -80,6 +102,7 @@ def plot_gene_pca(data, color, title, fname): #step 2.2: performing PCA analysis
     #I was checking that I could use the same scaffold from step 1.2, and HOPGPT suggested I add plt.close() to functions that I will be calling multiple times, like plot_reps_pca and plot_gene_pca, because otherwise it might slow down matplotlib.
     plt.close()
     return pcs[:,0], pcs[:,1]
+
    
 def normalize_data(data): #from framework
     """
@@ -101,7 +124,7 @@ def normalize_data(data): #from framework
     return norm_data
 
 
-def plot_hm(*data, xlabel='', ylabel='', title='', orderby=None, showgroups=False, fname=None): #from framework
+def plot_hm(*data, xlabel='', ylabel='', title='', orderby=None, showgroups=False, fname=None): #from framework, i got rid of plt.show() because I was getting annoyed by the popups and it saved the heatmaps as .pngs either way
     """
     Function for plotting heatmap/matrix style data.
 
@@ -171,10 +194,9 @@ def plot_hm(*data, xlabel='', ylabel='', title='', orderby=None, showgroups=Fals
         plt.suptitle(title)
     if fname is not None:
         plt.savefig(fname, dpi=300, bbox_inches='tight')
-    plt.show()
 
 
-def align_times(data, angle): #from framework
+def align_times(data, angle): #from framework, see comments in 3.2 about the changes made
     """
     This function takes a 2D matrix of data and a 1D matrix of angles (radians) and shifts data along the second axis (axis=1)
     to align all rows to have an effective angle of zero.
@@ -196,8 +218,8 @@ def align_times(data, angle): #from framework
     offsets[numpy.where(offsets < 0)] += n
     aligned = numpy.zeros_like(data)
     for i in range(data.shape[0]):
-        aligned[i, :] = (numpy.roll(data[i, :], numpy.floor(offsets[i])) * (numpy.ceil(offsets[i]) - offsets[i]) +
-                         numpy.roll(data[i, :], numpy.ceil(offsets[i])) * (offsets[i] - numpy.floor(offsets[i])))
+        aligned[i, :] = (numpy.roll(data[i, :], int(numpy.floor(offsets[i]))) * (numpy.ceil(offsets[i]) - offsets[i]) +
+                  numpy.roll(data[i, :], int(numpy.ceil(offsets[i]))) * (offsets[i] - numpy.floor(offsets[i])))
     return aligned
 
 main()
