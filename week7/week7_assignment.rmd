@@ -120,7 +120,7 @@ Now apply the `plotPCA()` function to your VST-normalized data. Perform this ste
 ex1_a <- plotPCA(vsd, intgroup="SEX")
 ggsave("ex1_a.png")
 ex1_a
-ex1_b <- plotPCA(vsd, intgroup="AGE")
+ex1_b <- plotPCA(vsd, intgroup="AGE") + scale_color_distiller(palette = "Spectral") + geom_point(shape = 1, color = "black", size = 3) #I wanted to change the colors for the 'age' variable so I could see the different age bins more clearly, so I asked HOPGPT how to change the colors and also outline the lighter dots.
 ggsave("ex1_b.png")
 ex1_b
 ex1_c <- plotPCA(vsd, intgroup="DTHHRDY")
@@ -166,7 +166,7 @@ print(m1)
 
 1.  Does WASH7P show significant evidence of sex-differential expression (and if so, in which direction)? Explain your answer.
 
-    *Your answer: Controlling for age and cause of death, WASH7P is reported to have slightly higher expression in males (estimate=*0.11876976)*, but the p-value is only 0.279, so this difference is not significant.*
+    *Your answer: Controlling for age and cause of death, WASH7P is reported to have slightly higher expression in males (estimate=*0.119)*, but the p-value is only 0.279, so this difference is not significant.*
 
 Now repeat your analysis for the gene SLC25A47.
 
@@ -180,7 +180,7 @@ print(m2)
 
 2.  Does this gene show evidence of sex-differential expression (and if so, in which direction)? Explain your answer.
 
-    *Your answer: Controlling for age and cause of death, SLC25A47 has higher expression in males (estimate=*0.51832893)*, with a significant p-value of 0.025.*
+    *Your answer: Controlling for age and cause of death, SLC25A47 has higher expression in males (estimate=*0.518)*, with a significant p-value of 0.0257.*
 
 #### **Step 2.2 — Perform differential expression analysis "the right way" with DESeq2**
 
@@ -205,7 +205,7 @@ Extract the differential expression results for the variable SEX.
 
 ```{r}
 
-res <- results(dds, name = "SEX_male_vs_female")  %>%
+res_sex <- results(dds, name = "SEX_male_vs_female")  %>%
   as_tibble(rownames = "GENE_NAME")
 ```
 
@@ -213,7 +213,7 @@ The `padj` column of `results` reports the FDR-adjusted p-value (i.e., "q-value"
 
 ```{r}
 
-res %>% filter(padj<0.1) %>% nrow()
+res_sex %>% filter(padj<0.1) %>% nrow()
 
 ```
 
@@ -227,59 +227,90 @@ Now load the mappings of genes to chromosomes, which you have already downloaded
 
 gene_names <-read_delim("gene_locations.txt")
 
-res<-left_join(res, gene_names, by = "GENE_NAME")
+res_sex <-left_join(res_sex, gene_names, by = "GENE_NAME")
 ```
 
 Examine your top hits.
 
 ```{r}
+#most 'male':
+res_sex %>% filter(padj<0.1) %>% arrange(-log2FoldChange) %>% head(20)
+
+#most 'female':
+res_sex %>% filter(padj<0.1) %>% arrange(log2FoldChange) %>% head(20)
+
+#more male or female at the top of the list?:
+res_sex %>% filter(padj < 0.1) %>% arrange(-(abs(log2FoldChange))) %>% head(20)
+
 ```
 
 2.  Which chromosomes encode the genes that are most strongly upregulated in males versus females, respectively? Are there more male-upregulated genes or female-upregulated genes near the top of the list? Interpret these results in your own words.
 
-    *Your answer:*
+    *Your answer: The Y-chromosome encodes the genes most strongly upregulated in males(highest log2FC) and the X-chromosome encodes the genes most strongly upregulated in females(lowest log2FC). The male-upregulated genes are most strongly differentially regulated(filtered by abs(log2FC) in descending order), with all the top 10 and nearly all the top 20 genes being 'male', or high log2FC, rather than 'female', or low log2FC. There are fewer female-upregulated X-chromosome genes than there are male-upregulated Y-chromosome genes, which makes sense because males are XY, so would have those same genes present on chrX but also genes on chrY that females would not have at all. Furthermore, the highly expressed genes on chrX (XIST and TSIX) are those responsible for dosage compensation in females (silencing one of the X chromosomes), which creates relatively equal expression levels between males and females for most genes on chrX.*
 
 Examine the results for the two genes (WASH7P and SLC25A47) that you had previously tested with the basic linear regression model in Step 2.1.
 
 ```{r}
+
+res_sex %>% filter(GENE_NAME %in% c("WASH7P", "SLC25A47")) %>% print()
 ```
 
 3.  Are the results broadly consistent with your results from Step 2.1?
 
-    *Your answer:*
+    *Your answer: Yes. WASH7P shows a very slight upregulation in males compared to females(log2FC=*0.0893)*, but with a padj of 0.9, meaning that it doesn't pass the FDR threshold and is likely not significant. SLC25A47 is highly male-upregulated(log2FC=3.06, with a very low padj of 8.3E-7, which is significant (it also appears in the top 20 most male-upregulated genes alongside genes on chrY!).* *By flooring genes with a low count, the lm() + vst transformation under-estimated the fold-change when compared with DESeq (it was lower in 2.1, at 0.518). Also, DESeq2 shrunk the otherwise 'noisy' dispersion for genes with a low base, estimating the dispersion instead based on the trendline for mean expression vs. dispersion across all the genes(the p-value was higher in 2.1, at 0.025).*
 
 4.  Write a short reflection (2–3 sentences) on how your analysis illustrates the trade-off between false positives and false negatives. For example, what happens if you use a very stringent FDR threshold (e.g., 1%) versus a lenient one (e.g., 20%)? Which type of error (false positive or false negative) would you expect to increase or decrease under each scenario? Briefly comment on how sample size and effect size might influence the power of your analysis to detect truly differentially expressed genes.
 
-    *Your answer:*
+    *Your answer: A stringent FDR threshold (such as padj\<0.01) will increase false negatives, whereas a lenient one (such as padj\<0.2) will increase false positives. The DESeq2 test statistic is related to log2FC(effect size)/standard error, so a large effect size or large sample size increases the power to detect any given gene as differentially expressed, and each improves the ability of a gene to pass FDR thresholding, particularly when it is more stringent. [I asked HOPGPT about the 'statistic' in DESeq2, because I was initially confused about 'sample size' (number of individuals) vs. number of genes (which is used while shrinking dispersion estimates).]*
 
 #### **Step 2.4 — Extract and interpret the results for differential expression by death classification**
 
 Now repeat your analysis from Step 2.3 above, but focusing on death classification as your variable of interest. This can be accomplished with the `results()` function, specifying the argument `name = "DTHHRDY_ventilator_case_vs_fast_death_of_natural_causes"`.
 
 ```{r}
+
+res_death <- results(dds, name = "DTHHRDY_ventilator_case_vs_fast_death_of_natural_causes")  %>%
+  as_tibble(rownames = "GENE_NAME")
 ```
 
 ```{r}
+res_death %>% filter(padj<0.1) %>% nrow()
 ```
 
 1.  How many genes are differentially expressed according to death classification at a 10% FDR?
 
-    *Your answer:*
+    *Your answer: Controlling for age and sex, and thresholding for a 10% FDR, there are 16069 genes that show significant differences in expression based on death classification. (This makes sense given that DTHHRDY was a large contributor to the variance in the PCA earlier.)*
 
 #### **Step 2.5 — Estimating a false positive rate under the null hypothesis**
 
 To better understand what a *false positive* looks like in practice, repeat your differential expression analysis but first randomly permute (i.e., shuffle) the sex column from the metadata. Then rerun the DESeq2 analysis using this permuted variable. Run `set.seed(42)` immediately before shuffling, so that everyone gets the same permutation, and you get the same results each time you knit your notebook.
 
 ```{r}
+
+set.seed(42)
+metadata_permuted <- metadata_df %>%
+  mutate(SEX = sample(SEX)) #I asked HOPGPT how to 'shuffle', and the output was that sample() will shuffle the 'sex' vector while keeping all others intact; essentially, it will randomize.
+
+  
+dds_permuted <- DESeqDataSetFromMatrix(countData=counts_df,
+                              colData=metadata_permuted,
+                              design= ~ SEX + DTHHRDY + AGE)
+
+dds_permuted <- DESeq(dds_permuted)
+
+res_sex_permuted <- results(dds_permuted, name = "SEX_male_vs_female") %>%
+  as_tibble(rownames = "GENE_NAME")
+
+res_sex_permuted %>% filter(padj < 0.1) %>% nrow()
 ```
 
 1.  How many genes appear "significant" in this permuted analysis at a 10% FDR? These are, by definition, false positives, because the labels no longer correspond to real biological sex. Compare this number to the count from your real (non-permuted) analysis.
 
-    *Your answer:*
+    *Your answer: The permuted analysis shows 90 'significant' genes which pass the 10% FDR thresholding, compared to 262 for the original non-shuffled dataset.*
 
 2.  What does this suggest about how well the FDR threshold controls the expected rate of false discoveries in large-scale RNA-seq experiments?
 
-    *Your answer:*
+    *Your answer: When applying the same thresholding for a 10% FDR (padj\<0.1), the shuffled dataset has 90 'significant' genes, which suggests if gene expression truly wasn't sex-specific, there still would be \~90 genes (depending on how set.seed() is used) that are falsely discovered as sex-specific (known 'noise'), out of all the genes in the dataset, which is very low considering there are \~54,500 genes represented. However, the un-shuffled original dataset has 262 genes that pass the thresholding, which, considering that this data was not randomized, suggests that a majority of the 'signal' is genuine, and FDR thresholding is keeping the rate of false discoveries low.*
 
 ------------------------------------------------------------------------
 
