@@ -323,13 +323,20 @@ Highlight the genes that are significant at a 10% FDR **AND** for which the abso
 Save this plot as `ex3_volcano.png`.
 
 ```{r}
-
-ex3_volcano <- ggplot(data=____, aes(color=log10(baseMean),x=log2FoldChange, y=-log10(padj)))+
+ex3_volcano <- ggplot(data=res_sex, aes(color = padj < 0.1 & abs(log2FoldChange) > 1, x=log2FoldChange, y=-log10(padj))) +
   geom_point() + 
-  geom_label(data=____ %>% filter(padj<1e-100), 
-             aes(x=log2FoldChange, y=-log10(padj), label=GENE_SYMBOL))
+  scale_color_manual(values = c("TRUE" = "red", "FALSE" = "grey"), 
+                     breaks = c("TRUE", "FALSE"), na.translate = FALSE) +
+  coord_cartesian(xlim=c(-10,10),ylim = c(0, 350)) + 
+  labs(color = "Significant Gene (padj<0.1 & |log2FC|>1)", 
+       title = "Differential Gene Expression by Sex (male/female)")
 
-ggsave("ex3_volcano_b.png")
+ggsave("ex3_volcano.png", width=10, height=7)
+
+ex3_volcano
+
+#I built the 'skeleton' from the week7 livecoding, then asked HOPGPT how to only color dots/genes which met the FDR and abs(log2FC) thresholds, and it gave me the aes(color = padj<0.1 & abs(log2FoldChange) > 1) paired with scale_color_manual('TRUE'=, 'FALSE'=) arguments.
+#I then asked for help removing the 'NA' category from the legend, and it gave me na.translate as a fix that would re-categories those genes for which padj=NA as 'FALSE'. I then asked how to 'force' reordering of 'TRUE' and 'FALSE' on the legend so TRUE would appear first, and it gave me the breaks() argument.
 ```
 
 ------------------------------------------------------------------------
