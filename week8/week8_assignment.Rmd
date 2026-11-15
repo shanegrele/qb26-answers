@@ -1,0 +1,89 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# 1. Load Data
+
+## Load Packages
+
+Load the following packages using library()
+
+```{r}
+BiocManager::install("zellkonverter") #loads single cell data from the popular H5AD file format and creates a SingleCellExperiment object
+library(zellkonverter)
+BiocManager::install("org.Mm.eg.db") #gene set analysis using mouse gene annotations
+library(org.Mm.eg.db)
+
+library(HDF5Array) #reads matrices stored inside HDF5 files such as H5AD
+library(scuttle)
+library(scater)
+library(scran) #provide core single cell functionality
+library(ggplot2) #data visualization
+library(clusterProfiler) # gene set analysis using mouse gene annotations
+```
+
+## Load and Inspect Data
+
+Load Kidney Data from CELLxGENE
+
+```{r}
+kidney <- readH5AD("kidney_10x.h5ad", reader = "R")
+
+assay( kidney, "X", withDimnames=FALSE ) <- as( H5SparseMatrix( "kidney_10x.h5ad", "raw/X" ), "dgCMatrix" )
+
+assayNames(kidney) <- "counts"
+
+#Genes are named by Ensembl IDs (e.g. ENSMUSG00000029422). Use gene symbols instead with 
+rownames(kidney) <- rowData(kidney)$feature_name
+
+#Normalize counts using
+kidney <- logNormCounts(kidney)
+```
+
+### **Question 1**: Inspect the `kidney` SingleCellExperiment object:
+
+```{r}
+kidney
+```
+
+How many genes are quantitated (should be \>10,000)?
+
+- *There are 17,943 genes.*
+
+How many cells are in the dataset?
+
+- *There are 21,647 cells.*
+
+What dimension reduction datasets are present?
+
+- PCA, t-SNE, and UMAP
+
+## **Question 2**: Inspect the available cell metadata (0.5 pt)
+
+How many columns are there in `colData(kidney)`?
+
+```{r}
+ncol(colData(kidney))
+```
+
+- *There are 29 columns.*
+
+Which three column names reported by `colnames()` seem most interesting? Briefly explain why.
+
+```{r}
+str(as.data.frame(colData(kidney)))
+```
+
+- *Some interesting columns are sex, cell_type, and development_stage: you could use those to look at aging-related (development stage) changes to the kidney by cell type and sex.*
+
+Plot cells according to `X_umap` using `plotReducedDim()` and colouring by `cell_type` and **submit this plot**
+
+```{r}
+
+ex_1_umap<- plotReducedDim(kidney, "X_umap", color_by = "cell_type") + theme_classic() +
+  ggtitle("UMAP of Kidney Cells by Cell Type")
+
+ggsave("ex_1_umap.png", width=15, height=10)
+
+```
