@@ -5,7 +5,7 @@ output: html_notebook
 
 # 1. Load Data
 
-## Load Packages
+## Load packages
 
 Load the following packages using library()
 
@@ -23,22 +23,22 @@ library(ggplot2) #data visualization
 library(clusterProfiler) # gene set analysis using mouse gene annotations
 ```
 
-## Load and Inspect Data
+## Load and inspect data
 
 Load Kidney Data from CELLxGENE
 
 ```{r}
-kidney <- readH5AD("kidney_10x.h5ad", reader = "R")
+kidney<-readH5AD("kidney_10x.h5ad", reader = "R")
 
 assay( kidney, "X", withDimnames=FALSE ) <- as( H5SparseMatrix( "kidney_10x.h5ad", "raw/X" ), "dgCMatrix" )
 
-assayNames(kidney) <- "counts"
+assayNames(kidney)<-"counts"
 
 #Genes are named by Ensembl IDs (e.g. ENSMUSG00000029422). Use gene symbols instead with 
-rownames(kidney) <- rowData(kidney)$feature_name
+rownames(kidney)<-rowData(kidney)$feature_name
 
 #Normalize counts using
-kidney <- logNormCounts(kidney)
+kidney<-logNormCounts(kidney)
 ```
 
 ### **Question 1**: Inspect the `kidney` SingleCellExperiment object:
@@ -57,9 +57,9 @@ How many cells are in the dataset?
 
 What dimension reduction datasets are present?
 
-- PCA, t-SNE, and UMAP
+- *PCA, t-SNE, and UMAP*
 
-## **Question 2**: Inspect the available cell metadata (0.5 pt)
+### **Question 2**: Inspect the available cell metadata
 
 How many columns are there in `colData(kidney)`?
 
@@ -81,9 +81,141 @@ Plot cells according to `X_umap` using `plotReducedDim()` and colouring by 
 
 ```{r}
 
-ex_1_umap<- plotReducedDim(kidney, "X_umap", color_by = "cell_type") + theme_classic() +
-  ggtitle("UMAP of Kidney Cells by Cell Type")
+ex_1_umap<-plotReducedDim(kidney, "X_umap", color_by = "cell_type") + theme_classic() +
+  ggtitle("UMAP of Kidney Cells by Cell Type") #I asked HOPGPT how to title the plot and how to make the background white instead of transparent.
 
 ggsave("ex_1_umap.png", width=15, height=10)
 
 ```
+
+# 2. Explore data
+
+## Explore gene-level statistics
+
+Sum the expression of each gene across all cells
+
+- Create a vector named `genecounts` by using `rowSums()` on the counts matrix returned by `counts(kidney)`
+
+```{r}
+genecounts<-rowSums(counts(kidney))
+```
+
+### **Question 3**: Explore the `genecounts` distribution 
+
+What is the mean and median genecount according to `summary()`? What might you conclude from these numbers?
+
+```{r}
+summary(genecounts)
+```
+
+- *The mean (8349) is far above the median (1212) (and even the third quartile(4566)). This means the data is really right-skewed, with most genes having a very low expression (possibly '0') and a few having very high expression contributing to the higher mean.*
+
+What are the three genes with the highest expression after using `sort()`? What do the gene names stand for?
+
+```{r}
+sort(genecounts, decreasing = TRUE)[1:3]
+#I asked HOPGPT if there was a way to find the full gene names without having to look them up, and it mentioned that org.Mm.eg.db stores many gene annotation databases, including the full gene names (GENENAME).
+AnnotationDbi::select(org.Mm.eg.db, 
+                      keys = c("Malat1", "Gpx3", "Kap"),
+                      keytype = "SYMBOL",
+                      columns = c("SYMBOL", "GENENAME"))
+```
+
+- *The top three genes are Malat1(metastasis associated lung adenocarcinoma transcript 1 (non-coding RNA)), Gpx3(glutathione peroxidase 3), and Kap(kidney androgen regulated protein).*
+
+## Explore cell-level statistics
+
+### **Question 4a**: Explore the total expression in each cell across all genes
+
+Create a vector named `cellcounts` using `colSums()`
+
+```{r}
+cellcounts<-colSums(counts(kidney))
+summary(cellcounts)
+```
+
+Create a histogram of `cellcounts` using `hist()`
+
+```{r}
+hist(cellcounts, breaks=1000, xlab = "Total Counts per Cell")
+```
+
+What is the mean number of counts per cell?
+
+- *The mean number of counts/cell is 6921.*
+
+How would you interpret the cells with much higher total counts (\>10,000)?
+
+- *I'd interpret cells with higher expression levels as having upregulated expression for whatever biological reason. But cells with expression/RNA levels close to the maximum (\~100,000, several times above the mean) could possibly be doublet or even multiplet cells captured within the same droplet in the sc-RNAseq.*
+
+### **Question 4b**: Explore the number of genes detected in each cell
+
+Create a vector named `celldetected` using `colSums()` but this time on `counts(kidney)>0`
+
+```{r}
+celldetected<-colSums(counts(kidney)>0)
+summary(celldetected)
+```
+
+Create a histogram of `celldetected` using `hist()`
+
+```{r}
+hist(celldetected, breaks=1000, xlab = "Total Genes Detected per Cell")
+```
+
+What is the mean number of genes detected per cell?
+
+- *The mean number of genes detected per cell is 1982.*
+
+What fraction of the total number of genes does this represent?
+
+- *1982/17943, or \~11%.*
+
+## Explore stress gene reads
+
+Solid tissues such as the kidney must be digested with enzymes at 37°C to release single cells. This dissociation can rapidly switch on immediate early genes (e.g. Fos, Jun, Egr1) and heat shock genes (e.g. Hspa1a), so the percent of reads from these stress genes is a useful quality metric. Sum the expression of a set of stress genes across each cell.
+
+Create a vector named `stress` of stress gene names using `stress <- c( "Fos", "Fosb", "Jun", "Junb", "Egr1", "Atf3", "Ier2", "Hspa1a", "Hspa1b" )`
+
+```{r}
+stress <- c( "Fos", "Fosb", "Jun", "Junb", "Egr1", "Atf3", "Ier2", "Hspa1a", "Hspa1b" )
+```
+
+Confirm that all of these genes are present using `stress %in% rownames(kidney)`
+
+```{r}
+stress %in% rownames(kidney)
+```
+
+Create a DataFrame named `df` using `perCellQCMetrics()` specifying that `subsets=list(Stress=stress)`
+
+```{r}
+df<-perCellQCMetrics(kidney, subsets=list(Stress=stress))
+```
+
+Confirm that the mean sum and detected match your previous calculations by converting `df` to a data.frame using `as.data.frame()` and then running `summary()`
+
+```{r}
+df<-as.data.frame(df)
+summary(df) #yes, the mean sum if also 6921 and the mean genes detected is also 1982.
+```
+
+Add metrics to cell metadata using `colData(kidney) <- cbind( colData(kidney), df )`
+
+```{r}
+colData(kidney) <- cbind( colData(kidney), df )
+```
+
+### **Question 5**: Visualize percent of reads from stress genes 
+
+Use `plotColData()` to plot the `subsets_Stress_percent` on the y-axis against the `cell_type` on the x-axis rotating the x-axis labels using `theme( axis.text.x=element_text( angle=90, hjust=1, vjust=0.5 ) )` and **submit this plot**
+
+```{r}
+ex_2_percent_stress<-plotColData(kidney, x = "cell_type", y = "subsets_Stress_percent") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) 
+
+ggsave("ex_2_percent_stress.png", bg="white", width=15, height=10) #I asked HOPGPT how to get a white background rather than a transparent one.
+```
+
+Which cell types have a higher percentage of stress gene reads? Why might this be the case?
+
+- *The cell types with the highest percentage of stress gene reads are fiibroblasts, mesangial cells, kidney capillary endothelial cells, and kidney cortex arterial cells. Unlike the epithelial cell types in the kidney, these cells are structurally weaker, lacking tight junctions, and may be more vulnerable during dissociation. Furthermore, as vascular and vascular-associated cells, they have mechanosensation, and may respond to the mechanical stress from the preparation.*
