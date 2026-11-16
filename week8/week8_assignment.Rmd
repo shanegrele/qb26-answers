@@ -100,7 +100,7 @@ Sum the expression of each gene across all cells
 genecounts<-rowSums(counts(kidney))
 ```
 
-### **Question 3**: Explore the `genecounts` distribution 
+### **Question 3**: Explore the `genecounts` distribution
 
 What is the mean and median genecount according to `summary()`? What might you conclude from these numbers?
 
@@ -219,3 +219,123 @@ ggsave("ex_2_percent_stress.png", bg="white", width=15, height=10) #I asked HOPG
 Which cell types have a higher percentage of stress gene reads? Why might this be the case?
 
 - *The cell types with the highest percentage of stress gene reads are fiibroblasts, mesangial cells, kidney capillary endothelial cells, and kidney cortex arterial cells. Unlike the epithelial cell types in the kidney, these cells are structurally weaker, lacking tight junctions, and may be more vulnerable during dissociation. Furthermore, as vascular and vascular-associated cells, they have mechanosensation, and may respond to the mechanical stress from the preparation.*
+
+# 3. Identify marker genes
+
+Identify marker genes for every cell type compared with all other cells
+
+Create a list named `marker.info` that contains the pairwise comparisons between all cell types using `scoreMarkers( kidney, colData(kidney)$cell_type )`
+
+```{r}
+marker.info <- scoreMarkers(kidney, colData(kidney)$cell_type)
+```
+
+## Analyze the proximal convoluted tubule
+
+Identify the top marker genes in the proximal convoluted tubule according to `mean.AUC` using the following code.
+
+```{r}
+chosen <- marker.info[["kidney proximal convoluted tubule epithelial cell"]]
+ordered <- chosen[order(chosen$mean.AUC, decreasing=TRUE),]
+head(ordered[,1:4])
+```
+
+### Question 6a. Evaluate top marker genes
+
+What are the six top marker genes in the proximal convoluted tubule?
+
+```{r}
+AnnotationDbi::select(org.Mm.eg.db, 
+                      keys = c("Gpx3", "Gatm", "Miox", "Ndrg1", "Aldob", "Slc34a1"),
+                      keytype = "SYMBOL",
+                      columns = c("SYMBOL", "GENENAME"))
+```
+
+- *The top 6 genes are Gpx3(glutathione peroxidase 3), Gatm(glycine amidinotransferase (L-arginine:glycine amidinotransferase)), Miox(myo-inositol oxygenase), Ndgr1(N-myc downstream regulated gene 1), Aldob(aldolase B, fructose-bisphosphate), and Slc34a1(solute carrier family 34 (sodium phosphate), member 1).*
+
+Plot the expression of the top marker gene across cell types using `plotExpression()` and specifying the gene name as the feature and `cell_type` as the x-axis and **submit this plot**
+
+```{r}
+ex_3_top_marker_gene<-plotExpression(kidney, features = "Gpx3", x = "cell_type") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggsave("ex_3_top_marker_gene.png", bg="white", width=15, height=10)
+```
+
+### Question 6b. Gene set analysis
+
+Create a vector `goi` that contains the names of the top 200 genes of interest by `rownames(ordered)[1:200]`
+
+```{r}
+goi<-rownames(ordered)[1:200]
+```
+
+Test for enriched Gene Ontology biological processes using the following code and **submit this plot**
+
+- You may need to install org.Mm.eg.db using `BiocManager::install( "org.Mm.eg.db" )`
+
+```{r}
+ego <- enrichGO( goi, OrgDb=org.Mm.eg.db, keyType="SYMBOL", ont="BP", universe=rownames(kidney) )
+head( ego )
+dotplot( ego )
+
+ggsave("ex_3_GO_terms.png", bg="white", width=15, height=10)
+```
+
+What are the top 3 GO terms?
+
+- *The top 3 most enriched categories are 'small molecule catabolic process', 'amino acid metabolic process', and 'alpha-amino acid metabolic process'.*
+
+Based on these terms and the functions of the top six marker genes at [NCBI Gene](#0), what class of molecules does the proximal convoluted tubule appear to specialize in metabolizing?
+
+- *This suggests that the proximal convoluted tubule is responsible for amino acid metabolism.*
+
+## Analyze the thick ascending limb
+
+### **Question 7**: Evaluate top marker genes (3 pt)
+
+Repeat the analysis for the thick ascending limb of the loop of Henle
+
+- Identify marker genes for `kidney loop of Henle thick ascending limb epithelial cell`
+
+```{r}
+chosen_TAL <- marker.info[["kidney loop of Henle thick ascending limb epithelial cell"]]
+ordered_TAL <- chosen_TAL[order(chosen_TAL$mean.AUC, decreasing=TRUE),]
+head(ordered_TAL[,1:4])
+```
+
+Create a vector `goi` that contains the names of the top six genes of interest by `rownames(ordered)[1:6]`
+
+```{r}
+goi_TAL<-rownames(ordered_TAL)[1:6]
+```
+
+Plot the expression of the top six marker genes across cell types using `plotExpression()` and specifying the `goi` vector as the features and **submit this plot**
+
+```{r}
+ex_3_TAL<-plotExpression(kidney, features=goi_TAL, x="cell_type") + 
+  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+
+ggsave("ex_3_TAL.png", bg="white", width=15, height=10)
+```
+
+Which other cell type expresses several of these markers? Looking at the labels, what might explain this?
+
+- *The kidney loop of Henle ascending limb epithelial cells and the kidney distal convoluted tubule epithelial cells both express very similar markers. This could be explained by the fact that these cells represent the ascending limb as well as the structure immediately downstream, both of which are involved in salt reabsorption back into the bloodstream.*
+
+Which marker looks most specific for the thick ascending limb? What drug class targets the protein it encodes?
+
+- *The Slc12a1 marker looks to be the most specific to the thick ascending limb. This gene encodes the Na-K-2Cl cotransporter, which is the transport protein that is located in the thick ascending limb. This protein is targeted by loop diuretics– when the channels are blocked, salts and therefore water are not reabsorbed, increasing urine output.*
+
+Run `enrichGO()` on the top 200 marker genes.
+
+```{r}
+goi200 <- rownames(ordered_TAL)[1:200]
+ego <- enrichGO(goi200, OrgDb=org.Mm.eg.db, keyType="SYMBOL", ont="BP", universe=rownames(kidney))
+head(ego)
+dotplot(ego)
+```
+
+What are the top GO terms, and why might this cell type need them?
+
+- *The top GO terms are 'generation of precursor', 'metabolites and energy derivation by oxidation of organic compounds', and 'cellular respiration'. These cells might need to produce energy for the channels that facilitate salt reabsorption. Ion transport often requires ATP (action of an Na+/K+ ATPase pump).*
